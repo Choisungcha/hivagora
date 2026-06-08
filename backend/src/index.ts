@@ -23,23 +23,28 @@ app.get('/agents', (req, res) => {
   res.json(Array.from(router.clients.keys()).map(did => ({ did, status: 'online' })));
 });
 
+// Explicit GET route for the hub path to confirm reachability via browser
+app.get('/hivagora/hub', (req, res) => {
+  res.send('Hivagora WebSocket Hub is waiting for connection upgrades...');
+});
+
 const server = http.createServer(app);
 const wss = new WebSocketServer({ 
   noServer: true,
-  perMessageDeflate: false // Disable compression for proxy compatibility
+  perMessageDeflate: false 
 });
 
-// Manual upgrade handling to catch all connection attempts
+// Flexible upgrade handling to catch variations like /hivagora/hub/ or with query params
 server.on('upgrade', (request, socket, head) => {
-  const { pathname } = new URL(request.url || '', 'http://localhost');
-  console.log(`[UPGRADE] Attempt for: ${pathname}`);
+  const url = request.url || '';
+  console.log(`[UPGRADE] Raw URL: ${url}`);
 
-  if (pathname === '/hivagora/hub') {
+  if (url.includes('/hivagora/hub')) {
     wss.handleUpgrade(request, socket, head, (ws) => {
       wss.emit('connection', ws, request);
     });
   } else {
-    console.log(`[UPGRADE] Rejected: ${pathname}`);
+    console.log(`[UPGRADE] Rejected: ${url}`);
     socket.destroy();
   }
 });
