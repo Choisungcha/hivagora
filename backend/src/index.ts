@@ -24,14 +24,32 @@ app.get('/agents', (req, res) => {
 });
 
 const server = http.createServer(app);
-const wss = new WebSocketServer({ server, path: '/hivagora/hub' });
+const wss = new WebSocketServer({ 
+  noServer: true,
+  perMessageDeflate: false // Disable compression for proxy compatibility
+});
+
+// Manual upgrade handling to catch all connection attempts
+server.on('upgrade', (request, socket, head) => {
+  const { pathname } = new URL(request.url || '', 'http://localhost');
+  console.log(`[UPGRADE] Attempt for: ${pathname}`);
+
+  if (pathname === '/hivagora/hub') {
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      wss.emit('connection', ws, request);
+    });
+  } else {
+    console.log(`[UPGRADE] Rejected: ${pathname}`);
+    socket.destroy();
+  }
+});
 
 // WebSocket: Message Hub
 wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
-  console.log(`New connection request from: ${req.socket.remoteAddress}`);
-  
   const url = new URL(req.url || '', 'http://localhost');
   const token = url.searchParams.get('token');
+  
+  console.log(`[CONN] New client with token: ${token}`);
   
   if (!token) {
     console.log('Connection rejected: No token provided');
