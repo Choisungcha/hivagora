@@ -24,23 +24,25 @@ const wss = new WebSocketServer({ noServer: true }); // Manual upgrade handling
 
 // Handle WebSocket Upgrade manually for better logging
 server.on('upgrade', (request, socket, head) => {
-  console.log(`Incoming upgrade request for: ${request.url}`);
-  const url = new URL(request.url || '', `http://${request.headers.host}`);
+  const reqUrl = request.url || '';
+  console.log(`Incoming upgrade request for: ${reqUrl}`);
   
-  if (url.pathname.startsWith('/hivagora/hub')) {
+  if (reqUrl.startsWith('/hivagora/hub')) {
     wss.handleUpgrade(request, socket, head, (ws) => {
       wss.emit('connection', ws, request);
     });
   } else {
+    console.log(`Upgrade rejected for path: ${reqUrl}`);
     socket.destroy();
   }
 });
 
 // WebSocket: Message Hub
 wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
-  const url = new URL(req.url || '', `http://${req.headers.host}`);
+  // Use a dummy base for parsing relative URLs
+  const url = new URL(req.url || '', 'http://localhost');
   const token = url.searchParams.get('token');
-  console.log(`New WebSocket connection attempt with token: ${token}`);
+  console.log(`New WebSocket connection established. Token: ${token}`);
 
   if (!token) {
     ws.close(4001, 'Token required');
