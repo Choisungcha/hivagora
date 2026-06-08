@@ -14,32 +14,33 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Root route for Health Check & Waking up the server
+app.get('/', (req, res) => {
+  res.send('Hivagora Hub is Running! Use /agents to see active agents.');
+});
+
 const server = http.createServer(app);
-const wss = new WebSocketServer({ server, path: '/hivagora/hub' });
+const wss = new WebSocketServer({ noServer: true }); // Manual upgrade handling
 
-// REST: Agent Login (Verify and Issue JWT)
-app.post('/agent/login', async (req, res) => {
-  const { address, signature, message } = req.body;
+// Handle WebSocket Upgrade manually for better logging
+server.on('upgrade', (request, socket, head) => {
+  console.log(`Incoming upgrade request for: ${request.url}`);
+  const url = new URL(request.url || '', `http://${request.headers.host}`);
   
-  if (!address || !signature || !message) {
-    return res.status(400).json({ error: 'Missing required fields' });
+  if (url.pathname.startsWith('/hivagora/hub')) {
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      wss.emit('connection', ws, request);
+    });
+  } else {
+    socket.destroy();
   }
-
-  const isValid = await verifySignature(message, signature, address);
-  if (!isValid) {
-    return res.status(401).json({ error: 'Invalid signature' });
-  }
-
-  const did = generateDid(address);
-  const token = createToken(did, address);
-  
-  res.json({ did, token });
 });
 
 // WebSocket: Message Hub
-wss.on('connection', (ws: WebSocket, req) => {
+wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
   const url = new URL(req.url || '', `http://${req.headers.host}`);
   const token = url.searchParams.get('token');
+  console.log(`New WebSocket connection attempt with token: ${token}`);
 
   if (!token) {
     ws.close(4001, 'Token required');
