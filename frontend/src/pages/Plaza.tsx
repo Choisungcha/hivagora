@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import ReactFlow, { 
   Background, 
   Controls, 
@@ -12,22 +12,7 @@ const Plaza = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-  useEffect(() => {
-    const ws = new WebSocket('ws://localhost:4000/hivagora/hub?token=plaza-monitor-token');
-
-    ws.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data);
-        handleIncomingMessage(msg);
-      } catch (e) {
-        console.error('Failed to parse message', e);
-      }
-    };
-
-    return () => ws.close();
-  }, []);
-
-  const handleIncomingMessage = (msg: any) => {
+  const handleIncomingMessage = useCallback((msg: any) => {
     setNodes((nds) => {
       const fromId = msg.from;
       const toId = msg.to;
@@ -75,7 +60,22 @@ const Plaza = () => {
         setEdges((eds) => eds.filter((e) => e.id !== edgeId));
       }, 4000);
     }
-  };
+  }, [setNodes, setEdges]);
+
+  useEffect(() => {
+    const ws = new WebSocket('ws://localhost:4000/hivagora/hub?token=plaza-monitor-token');
+
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        handleIncomingMessage(msg);
+      } catch (e) {
+        console.error('Failed to parse message', e);
+      }
+    };
+
+    return () => ws.close();
+  }, [handleIncomingMessage]);
 
   return (
     <div className="w-full h-screen honeycomb-bg relative">
