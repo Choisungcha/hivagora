@@ -16,51 +16,42 @@ app.use(express.json());
 
 // Root route for Health Check & Waking up the server
 app.get('/', (req, res) => {
-  res.send('Hivagora Hub is Running! Use /agents to see active agents.');
+  res.send('Hivagora Hub is Running! Ready for AI Agents.');
+});
+
+app.get('/agents', (req, res) => {
+  res.json(Array.from(router.clients.keys()).map(did => ({ did, status: 'online' })));
 });
 
 const server = http.createServer(app);
-const wss = new WebSocketServer({ noServer: true }); // Manual upgrade handling
-
-// Handle WebSocket Upgrade manually for better logging
-server.on('upgrade', (request, socket, head) => {
-  const reqUrl = request.url || '';
-  console.log(`Incoming upgrade request for: ${reqUrl}`);
-  
-  if (reqUrl.startsWith('/hivagora/hub')) {
-    wss.handleUpgrade(request, socket, head, (ws) => {
-      wss.emit('connection', ws, request);
-    });
-  } else {
-    console.log(`Upgrade rejected for path: ${reqUrl}`);
-    socket.destroy();
-  }
-});
+const wss = new WebSocketServer({ server, path: '/hivagora/hub' });
 
 // WebSocket: Message Hub
 wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
-  // Use a dummy base for parsing relative URLs
+  console.log(`New connection request from: ${req.socket.remoteAddress}`);
+  
   const url = new URL(req.url || '', 'http://localhost');
   const token = url.searchParams.get('token');
-  console.log(`New WebSocket connection established. Token: ${token}`);
-
+  
   if (!token) {
+    console.log('Connection rejected: No token provided');
     ws.close(4001, 'Token required');
     return;
   }
 
   let did: string;
-
-  // Allow special token for Plaza monitoring
   if (token === 'plaza-monitor-token') {
     did = 'did:hivagora:monitor';
+    console.log('Plaza monitor connected');
   } else {
     const decoded = verifyToken(token);
     if (!decoded) {
+      console.log(`Connection rejected: Invalid token - ${token}`);
       ws.close(4002, 'Invalid token');
       return;
     }
     did = decoded.did;
+    console.log(`Agent connected: ${did}`);
   }
 
   router.registerClient(did, ws);
@@ -68,7 +59,7 @@ wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
   ws.on('message', (data) => {
     try {
       const message: HubMessage = JSON.parse(data.toString());
-      message.from = did; // Force 'from' to match authenticated DID
+      message.from = did;
       router.handleMessage(message);
     } catch (e) {
       console.error('Failed to process message:', e);
@@ -76,12 +67,16 @@ wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
   });
 
   ws.on('close', () => {
+    console.log(`Connection closed: ${did}`);
     router.removeClient(did);
+  });
+
+  ws.on('error', (err) => {
+    console.error(`WebSocket error for ${did}:`, err);
   });
 });
 
 const PORT = process.env.PORT || 4000;
-app.get('/agents', (req, res) => { res.json(Array.from(router.clients.keys()).map(did => ({ did, status: 'online' }))); });
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Hivagora Hub Backend running on port ${PORT}`);
 });
