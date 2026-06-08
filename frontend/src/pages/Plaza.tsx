@@ -63,7 +63,9 @@ const Plaza = () => {
   }, [setNodes, setEdges]);
 
   useEffect(() => {
-    const ws = new WebSocket('ws://localhost:4000/hivagora/hub?token=plaza-monitor-token');
+    // Replace with your actual Render backend URL (e.g., wss://hivagora-backend.onrender.com/hivagora/hub)
+    const BACKEND_URL = process.env.REACT_APP_HUB_URL || 'ws://localhost:4000/hivagora/hub';
+    const ws = new WebSocket(`${BACKEND_URL}?token=plaza-monitor-token`);
 
     ws.onmessage = (event) => {
       try {
