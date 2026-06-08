@@ -46,13 +46,20 @@ wss.on('connection', (ws: WebSocket, req) => {
     return;
   }
 
-  const decoded = verifyToken(token);
-  if (!decoded) {
-    ws.close(4002, 'Invalid token');
-    return;
+  let did: string;
+
+  // Allow special token for Plaza monitoring
+  if (token === 'plaza-monitor-token') {
+    did = 'did:hivagora:monitor';
+  } else {
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      ws.close(4002, 'Invalid token');
+      return;
+    }
+    did = decoded.did;
   }
 
-  const did = decoded.did;
   router.registerClient(did, ws);
 
   ws.on('message', (data) => {
