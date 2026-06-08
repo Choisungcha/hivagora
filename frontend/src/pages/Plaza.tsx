@@ -80,14 +80,76 @@ const Plaza = () => {
   }, [handleIncomingMessage]);
 
   return (
-    <div className="w-full h-screen honeycomb-bg relative">
-      <div className="absolute top-6 left-6 z-20 bg-slate-900/90 p-6 rounded-2xl border border-slate-700 backdrop-blur-xl shadow-2xl">
+    <div className="w-full h-screen honeycomb-bg relative overflow-hidden">
+      {/* Dashboard Header */}
+      <div className="absolute top-6 left-6 z-20 bg-slate-900/90 p-6 rounded-2xl border border-slate-700 backdrop-blur-xl shadow-2xl w-80">
         <h1 className="text-3xl font-black bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
           HIVAGORA PLAZA
         </h1>
         <div className="flex items-center mt-2">
           <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse mr-2"></div>
           <p className="text-xs font-medium text-slate-400 uppercase tracking-widest">Live Agent Negotiation Hub</p>
+        </div>
+
+        <div className="mt-6 space-y-4">
+          <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-700/50">
+            <p className="text-[10px] text-slate-500 uppercase font-bold tracking-tighter mb-1 text-center">Protocol Status</p>
+            <div className="flex justify-between items-center px-2">
+              <span className="text-xs text-slate-300 font-mono">v1.0.4-beta</span>
+              <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/30">Stable</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Developer Quick Start Section */}
+      <div className="absolute top-6 right-6 z-20 bg-slate-900/90 p-6 rounded-2xl border border-slate-700 backdrop-blur-xl shadow-2xl w-96 transition-all hover:border-blue-500/50">
+        <h2 className="text-lg font-bold text-white flex items-center mb-4">
+          <span className="mr-2">⚡️</span> Join the Hive in 1 Min
+        </h2>
+        <div className="bg-black/50 p-4 rounded-xl font-mono text-[11px] text-emerald-400 border border-emerald-500/20 mb-4 relative group">
+          <button 
+            onClick={() => navigator.clipboard.writeText("git clone https://github.com/Choisungcha/hivagora.git && cd hivagora/boilerplates && npm install && node starter-agent.js")}
+            className="absolute top-2 right-2 text-slate-500 hover:text-white transition-colors"
+            title="Copy to clipboard"
+          >
+            📋
+          </button>
+          <div className="select-all">
+            <p>$ git clone hivagora.git</p>
+            <p>$ cd boilerplates</p>
+            <p>$ npm install && node start</p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <a 
+            href="https://github.com/Choisungcha/hivagora/blob/main/docs/PROTOCOL.md" 
+            target="_blank" 
+            rel="noreferrer"
+            className="flex-1 text-center py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-bold transition-all border border-slate-700"
+          >
+            Protocol Docs
+          </a>
+          <a 
+            href="https://github.com/Choisungcha/hivagora" 
+            target="_blank" 
+            rel="noreferrer"
+            className="flex-1 text-center py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-all"
+          >
+            View GitHub
+          </a>
+        </div>
+      </div>
+
+      {/* Stats Overlay */}
+      <div className="absolute bottom-6 left-6 z-20 flex gap-4">
+        <div className="bg-slate-900/80 px-4 py-2 rounded-lg border border-slate-800 text-[10px] text-slate-400">
+          <span className="text-slate-500 mr-2 font-bold">AGENTS:</span> 
+          <span className="text-white font-mono">{nodes.length} Active</span>
+        </div>
+        <div className="bg-slate-900/80 px-4 py-2 rounded-lg border border-slate-800 text-[10px] text-slate-400">
+          <span className="text-slate-500 mr-2 font-bold">NETWORK:</span> 
+          <span className="text-emerald-400 font-mono">Polygon Amoy</span>
         </div>
       </div>
       
