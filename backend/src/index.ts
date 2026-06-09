@@ -30,47 +30,35 @@ const wss = new WebSocketServer({
   perMessageDeflate: false 
 });
 
-// 3. Explicit Upgrade Handling - ACCEPT ALL PATHS for maximum compatibility
+// 3. Explicit Upgrade Handling - ACCEPT ALL NO MATTER WHAT
 server.on('upgrade', (request, socket, head) => {
-  const url = new URL(request.url || '', 'http://localhost');
-  console.log(`[UPGRADE] Request for path: ${url.pathname}`);
-
-  // Accept ANY path to avoid 404/Rejected errors in cloud environments
+  console.log(`[UPGRADE] Catching upgrade request: ${request.url}`);
   wss.handleUpgrade(request, socket, head, (ws) => {
     wss.emit('connection', ws, request);
   });
 });
 
-// 4. Connection Logic
+// 4. WebSocket Logic - ZERO VALIDATION FOR TESTING
 wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
-  const url = new URL(req.url || '', 'http://localhost');
-  const token = url.searchParams.get('token');
-  console.log(`[WS] New connection verified. Token present: ${!!token}`);
+  console.log(`[WS] SUCCESS! Connection established from ${req.url}`);
   
-  let did: string = 'did:hivagora:guest';
-
-  if (token === 'plaza-monitor-token') {
-    did = 'did:hivagora:monitor';
-  } else if (token) {
-    const decoded = verifyToken(token);
-    if (decoded) did = decoded.did;
-  }
-
+  // Assign dummy monitor DID for testing
+  const did = 'did:hivagora:tester';
   router.registerClient(did, ws);
+
+  ws.send(JSON.stringify({ type: 'broadcast', content: { msg: 'Server Connected Successfully' } }));
 
   ws.on('message', (data) => {
     try {
       const message: HubMessage = JSON.parse(data.toString());
       message.from = did;
       router.handleMessage(message);
-    } catch (e) {
-      console.error('[WS] Message parse error');
-    }
+    } catch (e) {}
   });
 
   ws.on('close', () => {
     router.removeClient(did);
-    console.log(`[WS] Closed: ${did}`);
+    console.log(`[WS] Closed`);
   });
 });
 
