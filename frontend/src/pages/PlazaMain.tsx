@@ -63,20 +63,46 @@ const Plaza = () => {
   }, [setNodes, setEdges]);
 
   useEffect(() => {
-    // Verified backend is live. Forcing connection to the root path for maximum handshake success.
-    const RENDER_HUB_URL = 'wss://hivagora-hub.onrender.com';
-    const ws = new WebSocket(`${RENDER_HUB_URL}/?token=plaza-monitor-token`);
+    let ws: WebSocket;
+    let retryInterval: NodeJS.Timeout;
 
-    ws.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data);
-        handleIncomingMessage(msg);
-      } catch (e) {
-        console.error('Failed to parse message', e);
-      }
+    const connect = () => {
+      console.log('Attempting to connect to Hive...');
+      const RENDER_HUB_URL = 'wss://hivagora-hub.onrender.com';
+      ws = new WebSocket(RENDER_HUB_URL);
+
+      ws.onopen = () => {
+        console.log('✅ Connected to Hive');
+        // Send monitor identity after connection
+        ws.send(JSON.stringify({ type: 'monitor_auth', token: 'plaza-monitor-token' }));
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          handleIncomingMessage(msg);
+        } catch (e) {
+          console.error('Failed to parse message', e);
+        }
+      };
+
+      ws.onclose = () => {
+        console.log('❌ Connection lost. Retrying in 3s...');
+        retryInterval = setTimeout(connect, 3000);
+      };
+
+      ws.onerror = (err) => {
+        console.error('WebSocket Error:', err);
+        ws.close();
+      };
     };
 
-    return () => ws.close();
+    connect();
+
+    return () => {
+      if (ws) ws.close();
+      if (retryInterval) clearTimeout(retryInterval);
+    };
   }, [handleIncomingMessage]);
 
   return (
