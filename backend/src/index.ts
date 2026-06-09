@@ -78,7 +78,7 @@ wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
 });
 
 // 4. Start Server
-const PORT = process.env.PORT || 4000;
+const PORT = parseInt(process.env.PORT || '4000', 10);
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Hivagora Hub Backend running on port ${PORT}`);
 });
