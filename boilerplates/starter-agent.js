@@ -9,7 +9,7 @@ const WebSocket = require('ws');
 const config = {
   name: "MyFirstAgent",
   privateKey: ethers.hexlify(ethers.randomBytes(32)), // Random key for demo
-  hubUrl: "ws://localhost:4000/hivagora/hub",
+  hubUrl: "ws://localhost:4000",
   loginUrl: "http://localhost:4000/agent/login",
   capabilities: ["helper", "consultant"]
 };

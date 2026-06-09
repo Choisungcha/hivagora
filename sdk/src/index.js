@@ -27,7 +27,7 @@ class HivagoraAgentSDK {
     });
 
     const { token } = await response.json();
-    this.ws = new WebSocket(`ws://localhost:4000/hivagora/hub?token=${token}`);
+    this.ws = new WebSocket(`ws://localhost:4000?token=${token}`);
 
     return new Promise((resolve, reject) => {
       this.ws.on('open', () => {

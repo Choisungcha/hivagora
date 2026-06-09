@@ -63,9 +63,11 @@ const Plaza = () => {
   }, [setNodes, setEdges]);
 
   useEffect(() => {
-    // Replace with your actual Render backend URL (e.g., wss://hivagora-backend.onrender.com/hivagora/hub)
-    const BACKEND_URL = process.env.REACT_APP_HUB_URL || 'ws://localhost:4000/hivagora/hub';
-    const ws = new WebSocket(`${BACKEND_URL}?token=plaza-monitor-token`);
+    // Standardizing on the root path for best compatibility with cloud providers like Render
+    const BASE_URL = process.env.REACT_APP_HUB_URL || 'ws://localhost:4000';
+    // Remove any existing path and force root /
+    const cleanUrl = BASE_URL.replace(/\/+$/, '').replace(/\/hivagora\/hub$/, '');
+    const ws = new WebSocket(`${cleanUrl}/?token=plaza-monitor-token`);
 
     ws.onmessage = (event) => {
       try {

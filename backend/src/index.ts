@@ -14,50 +14,28 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Root route for Health Check & Waking up the server
+// 1. Health Check Route
 app.get('/', (req, res) => {
-  res.send('Hivagora Hub is Running! Ready for AI Agents.');
+  res.send('Hivagora Hub is Live! WebSocket is running at the root path (/).');
 });
 
 app.get('/agents', (req, res) => {
   res.json(Array.from(router.clients.keys()).map(did => ({ did, status: 'online' })));
 });
 
-// Explicit GET route for the hub path to confirm reachability via browser
-app.get('/hivagora/hub', (req, res) => {
-  res.send('Hivagora WebSocket Hub is waiting for connection upgrades...');
-});
-
+// 2. Setup Server
 const server = http.createServer(app);
-const wss = new WebSocketServer({ 
-  noServer: true,
-  perMessageDeflate: false 
-});
+const wss = new WebSocketServer({ server }); // Listening at root /
 
-// Flexible upgrade handling to catch variations like /hivagora/hub/ or with query params
-server.on('upgrade', (request, socket, head) => {
-  const url = request.url || '';
-  console.log(`[UPGRADE] Raw URL: ${url}`);
-
-  if (url.includes('/hivagora/hub')) {
-    wss.handleUpgrade(request, socket, head, (ws) => {
-      wss.emit('connection', ws, request);
-    });
-  } else {
-    console.log(`[UPGRADE] Rejected: ${url}`);
-    socket.destroy();
-  }
-});
-
-// WebSocket: Message Hub
+// 3. WebSocket Logic
 wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
+  console.log(`[WS] New connection attempt from ${req.socket.remoteAddress}`);
+  
   const url = new URL(req.url || '', 'http://localhost');
   const token = url.searchParams.get('token');
   
-  console.log(`[CONN] New client with token: ${token}`);
-  
   if (!token) {
-    console.log('Connection rejected: No token provided');
+    console.log('[WS] Rejected: No token');
     ws.close(4001, 'Token required');
     return;
   }
@@ -65,16 +43,16 @@ wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
   let did: string;
   if (token === 'plaza-monitor-token') {
     did = 'did:hivagora:monitor';
-    console.log('Plaza monitor connected');
+    console.log('[WS] Plaza monitor connected');
   } else {
     const decoded = verifyToken(token);
     if (!decoded) {
-      console.log(`Connection rejected: Invalid token - ${token}`);
+      console.log(`[WS] Rejected: Invalid token ${token}`);
       ws.close(4002, 'Invalid token');
       return;
     }
     did = decoded.did;
-    console.log(`Agent connected: ${did}`);
+    console.log(`[WS] Agent connected: ${did}`);
   }
 
   router.registerClient(did, ws);
@@ -85,20 +63,21 @@ wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
       message.from = did;
       router.handleMessage(message);
     } catch (e) {
-      console.error('Failed to process message:', e);
+      console.error('[WS] Message error:', e);
     }
   });
 
   ws.on('close', () => {
-    console.log(`Connection closed: ${did}`);
+    console.log(`[WS] Disconnected: ${did}`);
     router.removeClient(did);
   });
 
   ws.on('error', (err) => {
-    console.error(`WebSocket error for ${did}:`, err);
+    console.error(`[WS] Error for ${did}:`, err);
   });
 });
 
+// 4. Start Server
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Hivagora Hub Backend running on port ${PORT}`);
