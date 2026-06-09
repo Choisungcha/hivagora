@@ -12,29 +12,24 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// 1. Every HTTP request log
+app.use((req, res, next) => {
+  console.log(`[HTTP] ${req.method} ${req.url}`);
+  next();
+});
+
 app.get('/', (req, res) => {
   res.send('Hivagora Hub is Live!');
 });
 
-const PORT = parseInt(process.env.PORT || '10000', 10);
+const PORT = process.env.PORT || 10000;
 const server = http.createServer(app);
 
-// 🛠 ULTIMATE FIX: Integrate WebSocket with the server differently
-const wss = new WebSocketServer({ 
-  noServer: true,
-  perMessageDeflate: false 
-});
-
-// Explicitly handle upgrade with zero validation
-server.on('upgrade', (request, socket, head) => {
-  console.log(`[UPGRADE] Catching request for ${request.url}`);
-  wss.handleUpgrade(request, socket, head, (ws) => {
-    wss.emit('connection', ws, request);
-  });
-});
+// 2. The most standard way for Render: bind to the HTTP server directly
+const wss = new WebSocketServer({ server });
 
 wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
-  console.log('[WS] !!! SUCCESS !!! Connection Established');
+  console.log(`[WS] SUCCESS! Connected: ${req.url}`);
   
   const did = 'did:hivagora:tester';
   router.registerClient(did, ws);
@@ -42,6 +37,9 @@ wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
   ws.on('message', (data) => {
     try {
       const message: HubMessage = JSON.parse(data.toString());
+      if (message.type === 'monitor_auth') {
+        console.log('[WS] Monitor Linked');
+      }
       message.from = did;
       router.handleMessage(message);
     } catch (e) {}
@@ -52,21 +50,10 @@ wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
     console.log('[WS] Disconnected');
   });
 
-  // Keep alive
-  ws.on('pong', () => {
-    (ws as any).isAlive = true;
-  });
+  ws.on('error', (err) => console.error('[WS] Error:', err));
 });
 
-// Keep-alive heartbeat
-setInterval(() => {
-  wss.clients.forEach((ws: any) => {
-    if (ws.isAlive === false) return ws.terminate();
-    ws.isAlive = false;
-    ws.ping();
-  });
-}, 30000);
-
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Unified Hub running on port ${PORT}`);
+// Start the unified server
+server.listen(PORT, () => {
+  console.log(`Unified Server running on port ${PORT}`);
 });

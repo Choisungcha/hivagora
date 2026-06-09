@@ -68,8 +68,8 @@ const Plaza = () => {
 
     const connect = () => {
       console.log('Attempting to connect to Hive...');
-      // Standardize URL with trailing slash for proxy compatibility
-      const RENDER_HUB_URL = 'wss://hivagora-hub.onrender.com/';
+      // No trailing slash for absolute standard compatibility
+      const RENDER_HUB_URL = 'wss://hivagora-hub.onrender.com';
       ws = new WebSocket(RENDER_HUB_URL);
 
       ws.onopen = () => {
