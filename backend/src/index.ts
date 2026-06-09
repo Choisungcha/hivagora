@@ -14,9 +14,13 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 1. Health Check Route
+// 1. Health Check & Info Routes
 app.get('/', (req, res) => {
-  res.send('Hivagora Hub is Live! WebSocket is running at the root path (/).');
+  res.send('<h1>🐝 Hivagora Hub is Live!</h1><p>WebSocket is active at the root path (/).</p>');
+});
+
+app.get('/hivagora/hub', (req, res) => {
+  res.send('<h1>📡 Hivagora Legacy Path</h1><p>The hub has moved to the root path (/), but we still support this legacy path for WebSockets.</p>');
 });
 
 app.get('/agents', (req, res) => {
@@ -25,9 +29,25 @@ app.get('/agents', (req, res) => {
 
 // 2. Setup Server
 const server = http.createServer(app);
-const wss = new WebSocketServer({ server }); // Listening at root /
+const wss = new WebSocketServer({ noServer: true }); // Manual handling for path compatibility
 
-// 3. WebSocket Logic
+// 3. Handle Upgrade for Multiple Paths
+server.on('upgrade', (request, socket, head) => {
+  const { pathname } = new URL(request.url || '', 'http://localhost');
+  console.log(`[UPGRADE] Request for: ${pathname}`);
+
+  // Support both root and legacy path
+  if (pathname === '/' || pathname === '/hivagora/hub' || pathname === '/hivagora/hub/') {
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      wss.emit('connection', ws, request);
+    });
+  } else {
+    console.log(`[UPGRADE] Rejected: ${pathname}`);
+    socket.destroy();
+  }
+});
+
+// 4. WebSocket Logic
 wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
   console.log(`[WS] New connection attempt from ${req.socket.remoteAddress}`);
   
