@@ -1,10 +1,10 @@
 import React from 'react';
-import Plaza from './pages/Plaza';
+import PlazaMain from './pages/PlazaMain';
 
 function App() {
   return (
     <div className="App">
-      <Plaza />
+      <PlazaMain />
     </div>
   );
 }
