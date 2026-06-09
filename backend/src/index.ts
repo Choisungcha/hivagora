@@ -3,8 +3,6 @@ import { WebSocketServer, WebSocket } from 'ws';
 import http from 'http';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { generateDid } from './auth/did';
-import { createToken, verifySignature, verifyToken } from './auth/verify';
 import { router } from './hub/router';
 import { HubMessage } from './types/agent';
 
@@ -14,49 +12,25 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 1. Basic Health Routes
 app.get('/', (req, res) => {
-  res.send('<h1>🐝 Hivagora Hub is Live!</h1><p>Status: OK</p>');
+  res.send('Hivagora Hub is Live!');
 });
 
-app.get('/agents', (req, res) => {
-  res.json(Array.from(router.clients.keys()).map(did => ({ did, status: 'online' })));
-});
-
-// 2. HTTP Server & WebSocket Setup
 const server = http.createServer(app);
 
-// 1. Ultra-Compatible WebSocket Server with Global Origin Support
+// Use the most standard setup recommended for WebSocket on Render
 const wss = new WebSocketServer({ 
-  noServer: true,
-  perMessageDeflate: false,
-  // Force allow all origins at the engine level
-  verifyClient: (info, callback) => {
-    console.log(`[AUTH] Verifying client from origin: ${info.origin}`);
-    callback(true);
-  }
+  server,
+  // No path specified to avoid any routing issues at the balancer level
 });
 
-// 2. Explicit Upgrade Handling
-server.on('upgrade', (request, socket, head) => {
-  console.log(`[UPGRADE] Catching request: ${request.url} from ${request.headers.origin}`);
-
-  // Respond to the upgrade request
-  wss.handleUpgrade(request, socket, head, (ws) => {
-    wss.emit('connection', ws, request);
-  });
-});
-
-// 3. WebSocket Logic
 wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
-  console.log(`[WS] SUCCESS! Connection established from ${req.headers.origin}`);
-
+  console.log(`[WS] CONNECTION SUCCESS from ${req.url}`);
   
-  // Assign dummy monitor DID for testing
   const did = 'did:hivagora:tester';
   router.registerClient(did, ws);
 
-  ws.send(JSON.stringify({ type: 'broadcast', content: { msg: 'Server Connected Successfully' } }));
+  ws.send(JSON.stringify({ type: 'broadcast', content: { msg: 'Connected to Hub' } }));
 
   ws.on('message', (data) => {
     try {
@@ -68,12 +42,12 @@ wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
 
   ws.on('close', () => {
     router.removeClient(did);
-    console.log(`[WS] Closed`);
+    console.log('[WS] Disconnected');
   });
 });
 
-// 5. Start Server
-const PORT = parseInt(process.env.PORT || '10000', 10);
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Hivagora Hub running on port ${PORT}`);
+// Render dynamic port or 10000
+const PORT = process.env.PORT || 10000;
+server.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
 });
