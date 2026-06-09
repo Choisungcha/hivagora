@@ -25,22 +25,32 @@ app.get('/agents', (req, res) => {
 
 // 2. HTTP Server & WebSocket Setup
 const server = http.createServer(app);
+
+// 1. Ultra-Compatible WebSocket Server with Global Origin Support
 const wss = new WebSocketServer({ 
-  noServer: true, // Handle upgrade manually to ensure path matching
-  perMessageDeflate: false 
+  noServer: true,
+  perMessageDeflate: false,
+  // Force allow all origins at the engine level
+  verifyClient: (info, callback) => {
+    console.log(`[AUTH] Verifying client from origin: ${info.origin}`);
+    callback(true);
+  }
 });
 
-// 3. Explicit Upgrade Handling - ACCEPT ALL NO MATTER WHAT
+// 2. Explicit Upgrade Handling
 server.on('upgrade', (request, socket, head) => {
-  console.log(`[UPGRADE] Catching upgrade request: ${request.url}`);
+  console.log(`[UPGRADE] Catching request: ${request.url} from ${request.headers.origin}`);
+
+  // Respond to the upgrade request
   wss.handleUpgrade(request, socket, head, (ws) => {
     wss.emit('connection', ws, request);
   });
 });
 
-// 4. WebSocket Logic - ZERO VALIDATION FOR TESTING
+// 3. WebSocket Logic
 wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
-  console.log(`[WS] SUCCESS! Connection established from ${req.url}`);
+  console.log(`[WS] SUCCESS! Connection established from ${req.headers.origin}`);
+
   
   // Assign dummy monitor DID for testing
   const did = 'did:hivagora:tester';
