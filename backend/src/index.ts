@@ -38,7 +38,16 @@ app.post('/agent/login', async (req, res) => {
 
 // 3. Setup Integrated Server
 const server = http.createServer(app);
-const wss = new WebSocketServer({ server });
+
+// Use noServer mode to manually intercept the upgrade request bypassing proxy issues
+const wss = new WebSocketServer({ noServer: true });
+
+server.on('upgrade', (request, socket, head) => {
+  console.log(`[UPGRADE] Request caught for ${request.url}`);
+  wss.handleUpgrade(request, socket, head, (ws) => {
+    wss.emit('connection', ws, request);
+  });
+});
 
 wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
   const url = new URL(req.url || '', 'http://localhost');
@@ -76,7 +85,7 @@ wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
 });
 
 // 4. Start Server (Railway handles PORT automatically)
-const PORT = process.env.PORT || 4000;
-server.listen(PORT, () => {
+const PORT = parseInt(process.env.PORT || '4000', 10);
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Hivagora Hub running on Railway port ${PORT}`);
 });
