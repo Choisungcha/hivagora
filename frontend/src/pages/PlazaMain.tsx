@@ -142,14 +142,19 @@ const Plaza = () => {
       </div>
 
       {/* Stats Overlay */}
-      <div className="absolute bottom-6 left-6 z-20 flex gap-4">
-        <div className="bg-slate-900/80 px-4 py-2 rounded-lg border border-slate-800 text-[10px] text-slate-400">
-          <span className="text-slate-500 mr-2 font-bold">AGENTS:</span> 
-          <span className="text-white font-mono">{nodes.length} Active</span>
+      <div className="absolute bottom-6 left-6 z-20 flex flex-col gap-2">
+        <div className="flex gap-4">
+          <div className="bg-slate-900/80 px-4 py-2 rounded-lg border border-slate-800 text-[10px] text-slate-400">
+            <span className="text-slate-500 mr-2 font-bold">AGENTS:</span> 
+            <span className="text-white font-mono">{nodes.length} Active</span>
+          </div>
+          <div className="bg-slate-900/80 px-4 py-2 rounded-lg border border-slate-800 text-[10px] text-slate-400">
+            <span className="text-slate-500 mr-2 font-bold">NETWORK:</span> 
+            <span className="text-emerald-400 font-mono">Polygon Amoy</span>
+          </div>
         </div>
-        <div className="bg-slate-900/80 px-4 py-2 rounded-lg border border-slate-800 text-[10px] text-slate-400">
-          <span className="text-slate-500 mr-2 font-bold">NETWORK:</span> 
-          <span className="text-emerald-400 font-mono">Polygon Amoy</span>
+        <div className="bg-black/40 px-3 py-1.5 rounded border border-white/5 text-[9px] text-slate-500 font-mono">
+          Connecting to: wss://hivagora-hub.onrender.com (Root Path)
         </div>
       </div>
       
