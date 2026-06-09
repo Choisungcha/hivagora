@@ -12,53 +12,61 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Log every request to see if WS upgrade reaches here
-app.use((req, res, next) => {
-  console.log(`[HTTP] ${req.method} ${req.url} - ${req.headers['user-agent']}`);
-  next();
-});
-
 app.get('/', (req, res) => {
   res.send('Hivagora Hub is Live!');
 });
 
+const PORT = parseInt(process.env.PORT || '10000', 10);
 const server = http.createServer(app);
 
-const wss = new WebSocketServer({ server });
+// 🛠 ULTIMATE FIX: Integrate WebSocket with the server differently
+const wss = new WebSocketServer({ 
+  noServer: true,
+  perMessageDeflate: false 
+});
+
+// Explicitly handle upgrade with zero validation
+server.on('upgrade', (request, socket, head) => {
+  console.log(`[UPGRADE] Catching request for ${request.url}`);
+  wss.handleUpgrade(request, socket, head, (ws) => {
+    wss.emit('connection', ws, request);
+  });
+});
 
 wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
-  console.log(`[WS] Connection Established: ${req.url}`);
+  console.log('[WS] !!! SUCCESS !!! Connection Established');
   
-  // Heartbeat to keep connection alive on Render
-  const pingInterval = setInterval(() => {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.ping();
-    }
-  }, 30000);
-
   const did = 'did:hivagora:tester';
   router.registerClient(did, ws);
 
   ws.on('message', (data) => {
     try {
-      const message = JSON.parse(data.toString());
-      if (message.type === 'monitor_auth') {
-        console.log('[WS] Monitor Authenticated');
-      }
+      const message: HubMessage = JSON.parse(data.toString());
       message.from = did;
       router.handleMessage(message);
     } catch (e) {}
   });
 
   ws.on('close', () => {
-    clearInterval(pingInterval);
     router.removeClient(did);
     console.log('[WS] Disconnected');
   });
+
+  // Keep alive
+  ws.on('pong', () => {
+    (ws as any).isAlive = true;
+  });
 });
 
-// Render dynamic port or 10000
-const PORT = process.env.PORT || 10000;
-server.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+// Keep-alive heartbeat
+setInterval(() => {
+  wss.clients.forEach((ws: any) => {
+    if (ws.isAlive === false) return ws.terminate();
+    ws.isAlive = false;
+    ws.ping();
+  });
+}, 30000);
+
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Unified Hub running on port ${PORT}`);
 });
