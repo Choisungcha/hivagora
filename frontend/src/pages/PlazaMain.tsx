@@ -84,7 +84,7 @@ const Plaza = () => {
       {/* Dashboard Header */}
       <div className="absolute top-6 left-6 z-20 bg-slate-900/90 p-6 rounded-2xl border border-slate-700 backdrop-blur-xl shadow-2xl w-80">
         <h1 className="text-3xl font-black bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-          HIVAGORA PLAZA
+          HIVAGORA PLAZA v1.1.0
         </h1>
         <div className="flex items-center mt-2">
           <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse mr-2"></div>
