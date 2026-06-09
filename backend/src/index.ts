@@ -14,48 +14,50 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Health Check
+// 1. Basic Health Routes
 app.get('/', (req, res) => {
-  res.send('<h1>🐝 Hivagora Hub is Live!</h1>');
+  res.send('<h1>🐝 Hivagora Hub is Live!</h1><p>Status: OK</p>');
 });
 
 app.get('/agents', (req, res) => {
   res.json(Array.from(router.clients.keys()).map(did => ({ did, status: 'online' })));
 });
 
+// 2. HTTP Server & WebSocket Setup
 const server = http.createServer(app);
-
-// 1. Ultra-Compatible WebSocket Server
-// Listening to all paths and disabling perMessageDeflate for proxy stability
 const wss = new WebSocketServer({ 
-  server,
-  perMessageDeflate: false
+  noServer: true, // Handle upgrade manually to ensure path matching
+  perMessageDeflate: false 
 });
 
-// 2. Simplest Connection Logic
+// 3. Explicit Upgrade Handling (The most robust way for Render)
+server.on('upgrade', (request, socket, head) => {
+  const url = new URL(request.url || '', 'http://localhost');
+  console.log(`[UPGRADE] Attempt for path: ${url.pathname}`);
+
+  if (url.pathname === '/hub' || url.pathname === '/hub/') {
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      wss.emit('connection', ws, request);
+    });
+  } else {
+    console.log(`[UPGRADE] Rejected: Invalid path ${url.pathname}`);
+    socket.destroy();
+  }
+});
+
+// 4. Connection Logic
 wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
-  console.log(`[WS] Connection opened from ${req.url}`);
-  
   const url = new URL(req.url || '', 'http://localhost');
   const token = url.searchParams.get('token');
+  console.log(`[WS] New connection verified. Token present: ${!!token}`);
   
-  let did: string = 'did:hivagora:unknown';
+  let did: string = 'did:hivagora:guest';
 
   if (token === 'plaza-monitor-token') {
     did = 'did:hivagora:monitor';
-    console.log('[WS] Monitor linked');
   } else if (token) {
     const decoded = verifyToken(token);
-    if (decoded) {
-      did = decoded.did;
-      console.log(`[WS] Agent linked: ${did}`);
-    } else {
-      console.log(`[WS] Token invalid: ${token}`);
-      ws.send(JSON.stringify({ type: 'error', content: 'Invalid Token' }));
-      // Don't close immediately to avoid "failed" error in browser
-    }
-  } else {
-    console.log('[WS] No token provided');
+    if (decoded) did = decoded.did;
   }
 
   router.registerClient(did, ws);
@@ -66,20 +68,18 @@ wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
       message.from = did;
       router.handleMessage(message);
     } catch (e) {
-      console.error('[WS] Message error');
+      console.error('[WS] Message parse error');
     }
   });
 
   ws.on('close', () => {
-    console.log(`[WS] Closed: ${did}`);
     router.removeClient(did);
+    console.log(`[WS] Closed: ${did}`);
   });
-
-  ws.on('error', (err) => console.error('[WS] Error:', err));
 });
 
-// 3. Robust Port Binding for Render
-const PORT = parseInt(process.env.PORT || '4000', 10);
-server.listen(PORT, () => {
+// 5. Start Server
+const PORT = parseInt(process.env.PORT || '10000', 10);
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Hivagora Hub running on port ${PORT}`);
 });
