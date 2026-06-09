@@ -30,19 +30,15 @@ const wss = new WebSocketServer({
   perMessageDeflate: false 
 });
 
-// 3. Explicit Upgrade Handling (The most robust way for Render)
+// 3. Explicit Upgrade Handling - ACCEPT ALL PATHS for maximum compatibility
 server.on('upgrade', (request, socket, head) => {
   const url = new URL(request.url || '', 'http://localhost');
-  console.log(`[UPGRADE] Attempt for path: ${url.pathname}`);
+  console.log(`[UPGRADE] Request for path: ${url.pathname}`);
 
-  if (url.pathname === '/hub' || url.pathname === '/hub/') {
-    wss.handleUpgrade(request, socket, head, (ws) => {
-      wss.emit('connection', ws, request);
-    });
-  } else {
-    console.log(`[UPGRADE] Rejected: Invalid path ${url.pathname}`);
-    socket.destroy();
-  }
+  // Accept ANY path to avoid 404/Rejected errors in cloud environments
+  wss.handleUpgrade(request, socket, head, (ws) => {
+    wss.emit('connection', ws, request);
+  });
 });
 
 // 4. Connection Logic

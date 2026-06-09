@@ -63,8 +63,8 @@ const Plaza = () => {
   }, [setNodes, setEdges]);
 
   useEffect(() => {
-    // Verified production URL from Render
-    const RENDER_HUB_URL = 'wss://hivagora-hub.onrender.com/hub';
+    // Full URL as per user suggestion for absolute compatibility
+    const RENDER_HUB_URL = 'wss://hivagora-hub.onrender.com/hivagora/hub';
     const ws = new WebSocket(`${RENDER_HUB_URL}?token=plaza-monitor-token`);
 
     ws.onmessage = (event) => {
