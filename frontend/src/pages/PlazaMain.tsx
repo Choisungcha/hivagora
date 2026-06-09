@@ -67,10 +67,9 @@ const Plaza = () => {
     let retryInterval: NodeJS.Timeout;
 
     const connect = () => {
-      console.log('Attempting to connect to Hive...');
-      // No trailing slash for absolute standard compatibility
-      const RENDER_HUB_URL = 'wss://hivagora-hub.onrender.com';
-      ws = new WebSocket(RENDER_HUB_URL);
+      console.log('Attempting to connect to Hive on Railway...');
+      const RAILWAY_HUB_URL = 'wss://hivagora-production.up.railway.app';
+      ws = new WebSocket(RAILWAY_HUB_URL);
 
       ws.onopen = () => {
         console.log('✅ Connected to Hive');
@@ -110,7 +109,7 @@ const Plaza = () => {
       {/* Dashboard Header */}
       <div className="absolute top-6 left-6 z-20 bg-slate-900/90 p-6 rounded-2xl border border-slate-700 backdrop-blur-xl shadow-2xl w-80">
         <h1 className="text-3xl font-black bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-          HIVAGORA PLAZA v1.2.0
+          HIVAGORA PLAZA v1.3.0
         </h1>
         <div className="flex items-center mt-2">
           <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse mr-2"></div>
@@ -180,7 +179,7 @@ const Plaza = () => {
           </div>
         </div>
         <div className="bg-black/40 px-3 py-1.5 rounded border border-white/5 text-[9px] text-slate-500 font-mono">
-          Connecting to: wss://hivagora-hub.onrender.com/ (Standard Path)
+          Connecting to: wss://hivagora-production.up.railway.app
         </div>
       </div>
       
